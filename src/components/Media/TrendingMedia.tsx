@@ -4,6 +4,10 @@ import { MediaCardWithAttribution } from '@/components/Media/MediaCardWithAttrib
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { MediaReference, MediaType } from '@/types';
 
+interface TrendingMediaProps {
+  mediaType?: MediaType;
+}
+
 const mediaTypes = [
   { label: 'Movies', value: 'movie' },
   { label: 'TV Shows', value: 'tv_show' },
@@ -16,20 +20,25 @@ const mediaTypes = [
 ] as const;
 
 async function getTrendingByType(type: MediaType): Promise<MediaReference[]> {
-  const results = await getTrendingAcrossServices([type]);
-  const mediaList = results[type] || [];
+  try {
+    const results = await getTrendingAcrossServices([type]);
+    const mediaList = results[type] || [];
+    
+    // Deduplicate results
+    const uniqueMedia = mediaList.filter(
+      (item, index, self) =>
+        index === self.findIndex(
+          (t) => t.externalSource === item.externalSource && t.externalId === item.externalId
+        )
+    );
   
-  // Deduplicate results
-  const uniqueMedia = mediaList.filter(
-    (item, index, self) =>
-      index === self.findIndex(
-        (t) => t.externalSource === item.externalSource && t.externalId === item.externalId
-      )
-  );
-
-  return uniqueMedia
-    .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
-    .slice(0, 4);
+    return uniqueMedia
+      .sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0))
+      .slice(0, 4);
+  } catch (error) {
+    console.error(`Error getting trending content for ${type}:`, error);
+    return [];
+  }
 }
 
 async function MediaTypeContent({ type }: { type: MediaType }) {
@@ -51,7 +60,30 @@ async function MediaTypeContent({ type }: { type: MediaType }) {
   );
 }
 
-export function TrendingMedia() {
+export function TrendingMedia({ mediaType }: TrendingMediaProps) {
+  // If we're on a specific media type page (e.g. /movies), only show that content
+  if (mediaType) {
+    return (
+      <div className="w-full">
+        <Suspense 
+          fallback={
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="h-[360px] bg-gray-100 rounded-lg animate-pulse"
+                />
+              ))}
+            </div>
+          }
+        >
+          <MediaTypeContent type={mediaType} />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // Otherwise, show tabs for all media types
   return (
     <Tabs defaultValue="movie" className="w-full">
       <TabsList className="flex space-x-1 mb-6 overflow-x-auto pb-2">

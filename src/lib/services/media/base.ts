@@ -37,8 +37,6 @@ export abstract class BaseMediaService {
     }
 
     const data = await response.json();
-
-    console.log("url: " + url)
     
     // Cache the response
     apiCache.set(cacheKey, data, this.source);

@@ -83,20 +83,27 @@ export class TMDBService extends BaseMediaService {
     return `${baseUrl}${preferredSize}${path}`;
   }
 
+  // Restore default movie type for backward compatibility
   public async searchMedia(query: string): Promise<MediaReference[]>;
   public async searchMedia(query: string, options: TMDBSearchOptions): Promise<MediaReference[]>;
   public async searchMedia(query: string, options: TMDBSearchOptions = {}): Promise<MediaReference[]> {
+    // Default to movie if type is not specified (for backward compatibility)
     const { type = 'movie', page = 1, includeAdult = false, language = 'en-US' } = options;
     
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/search/${type}?` + 
-      `query=${encodeURIComponent(query)}&` +
-      `page=${page}&` +
-      `include_adult=${includeAdult}&` +
-      `language=${language}`
-    );
-
-    return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    try {
+      const data = await this.fetchWithCache<any>(
+        `${this.baseUrl}/search/${type}?` + 
+        `query=${encodeURIComponent(query)}&` +
+        `page=${page}&` +
+        `include_adult=${includeAdult}&` +
+        `language=${language}`
+      );
+  
+      return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    } catch (error) {
+      console.error(`TMDB search error for ${type}:`, error);
+      return [];
+    }
   }
 
   public async getMediaDetails(id: string): Promise<MediaReference>;
@@ -104,66 +111,86 @@ export class TMDBService extends BaseMediaService {
   public async getMediaDetails(id: string, options?: TMDBDetailsOptions): Promise<MediaReference> {
     const { type = 'movie', appendToResponse = ['credits', 'videos'], language = 'en-US' } = options || {};
     
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/${type}/${id}?` +
-      `append_to_response=${appendToResponse.join(',')}&` +
-      `language=${language}`
-    );
-
-    return this.transformTMDBResult(data, type);
+    try {
+      const data = await this.fetchWithCache<any>(
+        `${this.baseUrl}/${type}/${id}?` +
+        `append_to_response=${appendToResponse.join(',')}&` +
+        `language=${language}`
+      );
+  
+      return this.transformTMDBResult(data, type);
+    } catch (error) {
+      console.error(`TMDB details error for ${type}/${id}:`, error);
+      throw error; // Re-throw to allow proper error handling by the caller
+    }
   }
 
   public async getTrendingMedia(type: 'movie' | 'tv' = 'movie'): Promise<MediaReference[]> {
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/trending/${type}/week`
-    );
-
-    return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    try {
+      const data = await this.fetchWithCache<any>(
+        `${this.baseUrl}/trending/${type}/week`
+      );
+  
+      return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    } catch (error) {
+      console.error(`TMDB trending error for ${type}:`, error);
+      return [];
+    }
   }
 
   public async getPopularMedia(type: 'movie' | 'tv' = 'movie'): Promise<MediaReference[]> {
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/${type}/popular`
-    );
-
-    return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    try {
+      const data = await this.fetchWithCache<any>(
+        `${this.baseUrl}/${type}/popular`
+      );
+  
+      return data.results.map((item: any) => this.transformTMDBResult(item, type));
+    } catch (error) {
+      console.error(`TMDB popular error for ${type}:`, error);
+      return [];
+    }
   }
 
   public async getUpcomingReleases(limit: number = 20): Promise<NewsItem[]> {
-    const moviePromise = this.fetchWithCache<any>(
-      `${this.baseUrl}/movie/upcoming?page=1&per_page=${limit/2}`
-    );
-    const tvPromise = this.fetchWithCache<any>(
-      `${this.baseUrl}/tv/on_the_air?page=1&per_page=${limit/2}`
-    );
-  
-    const [movieData, tvData] = await Promise.all([moviePromise, tvPromise]);
-  
-    const movies = movieData.results.map((item: any) => ({
-      id: String(item.id),
-      title: item.title,
-      description: item.overview,
-      imageUrl: this.getImageUrl(item.poster_path),
-      url: `https://www.themoviedb.org/movie/${item.id}`,
-      publishedAt: item.release_date,
-      source: 'TMDB',
-      type: 'upcoming_release'
-    }));
-  
-    const tvShows = tvData.results.map((item: any) => ({
-      id: String(item.id),
-      title: item.name,
-      description: item.overview,
-      imageUrl: this.getImageUrl(item.poster_path),
-      url: `https://www.themoviedb.org/tv/${item.id}`,
-      publishedAt: item.first_air_date,
-      source: 'TMDB',
-      type: 'upcoming_release'
-    }));
-  
-    return [...movies, ...tvShows]
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .slice(0, limit);
+    try {
+      const moviePromise = this.fetchWithCache<any>(
+        `${this.baseUrl}/movie/upcoming?page=1&per_page=${limit/2}`
+      );
+      const tvPromise = this.fetchWithCache<any>(
+        `${this.baseUrl}/tv/on_the_air?page=1&per_page=${limit/2}`
+      );
+    
+      const [movieData, tvData] = await Promise.all([moviePromise, tvPromise]);
+    
+      const movies = movieData.results.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        description: item.overview,
+        imageUrl: this.getImageUrl(item.poster_path),
+        url: `https://www.themoviedb.org/movie/${item.id}`,
+        publishedAt: item.release_date,
+        source: 'TMDB',
+        type: 'upcoming_release'
+      }));
+    
+      const tvShows = tvData.results.map((item: any) => ({
+        id: String(item.id),
+        title: item.name,
+        description: item.overview,
+        imageUrl: this.getImageUrl(item.poster_path),
+        url: `https://www.themoviedb.org/tv/${item.id}`,
+        publishedAt: item.first_air_date,
+        source: 'TMDB',
+        type: 'upcoming_release'
+      }));
+    
+      return [...movies, ...tvShows]
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+        .slice(0, limit);
+    } catch (error) {
+      console.error('TMDB upcoming releases error:', error);
+      return [];
+    }
   }
 
   private transformTMDBResult(item: any, type: 'movie' | 'tv'): MediaReference {

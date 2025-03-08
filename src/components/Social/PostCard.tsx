@@ -1,7 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Post } from '@/types';
-import { supabase } from '@/lib/client/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/client/supabase';
+import { ExtendedPost, Post } from '@/types/index';
+import { timeAgo } from '@/utils/time';
+import { Menu } from '@headlessui/react';
+import {
+  MessageSquare as ChatAltIcon,
+  MoreVertical as DotsVerticalIcon,
+  Share as ShareIcon,
+  ThumbsUp as ThumbUpIcon
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Avatar } from './Avatar';
 
 interface PostCardProps {
   post: Post;
@@ -13,6 +23,9 @@ export function PostCard({ post, onDelete }: PostCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(post.content);
   const [likes, setLikes] = useState<string[]>([]);
+  
+  // Cast post to ExtendedPost to ensure commentCount is available
+  const extendedPost = post as ExtendedPost;
 
   useEffect(() => {
     const fetchLikes = async () => {
@@ -63,10 +76,10 @@ export function PostCard({ post, onDelete }: PostCardProps) {
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center space-x-3">
-          <Avatar user={post.user} />
+          <Avatar user={extendedPost.user} />
           <div>
-            <Link href={`/users/${post.user.username}`} className="font-medium text-gray-900">
-              {post.user.username}
+            <Link href={`/users/${extendedPost.user.username}`} className="font-medium text-gray-900">
+              {extendedPost.user.username}
             </Link>
             <p className="text-sm text-gray-500">
               {timeAgo(post.createdAt)}
@@ -155,7 +168,7 @@ export function PostCard({ post, onDelete }: PostCardProps) {
           className="flex items-center space-x-1 text-gray-500 hover:text-gray-700"
         >
           <ChatAltIcon className="h-5 w-5" />
-          <span>{post.commentCount}</span>
+          <span>{extendedPost.commentCount}</span>
         </button>
         <button
           onClick={() => {/* Share post */}}

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { supabase } from '@/lib/client/supabase';
-import { validateUsername, validateEmail, validatePassword } from '@/utils/validation';
+import { validateEmail, validatePassword, validateUsername } from '@/utils/validation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,16 +41,32 @@ export default function SignUpPage() {
     }
 
     try {
+      console.log('Starting signup process...');
+      
+      // Check if Supabase configuration is available
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error('Supabase configuration is missing');
+        throw new Error('Application configuration error. Please contact support.');
+      }
+      
       // Create auth user
+      console.log('Attempting to create user with Supabase Auth...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
+
+      console.log('Auth response:', authData);
 
       // Check if user is created
       if (authData && authData.user) {
+        console.log('User created successfully, creating profile...');
+        
         // Create user profile
         const { error: profileError } = await supabase
           .from('user_profiles')
@@ -59,9 +75,13 @@ export default function SignUpPage() {
             username,
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          throw profileError;
+        }
 
         // Create default lists
+        console.log('Creating default lists...');
         const defaultLists = [
           { title: 'Watchlist', is_default: true },
           { title: 'Favorites', is_default: true },
@@ -76,14 +96,31 @@ export default function SignUpPage() {
             user_id: authData.user.id,
           })));
 
-        if (listsError) throw listsError;
+        if (listsError) {
+          console.error('Lists creation error:', listsError);
+          throw listsError;
+        }
 
-        router.push('/auth/verify-email');
+        console.log('Signup complete, redirecting...');
+        
+        // Store email in localStorage for the verification page
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('signupEmail', email);
+        }
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
-        throw new Error('User creation failed');
+        console.error('User object missing in auth response');
+        throw new Error('User creation failed. Please try again.');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during sign up');
+      console.error('Signup error:', err);
+      
+      // Check for network errors
+      if (err.message?.includes('Failed to fetch')) {
+        setError('Cannot connect to authentication service. Please check your internet connection and make sure Supabase is properly configured.');
+      } else {
+        setError(err.message || 'An error occurred during sign up');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +183,7 @@ export default function SignUpPage() {
               required
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             />
+            <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters long</p>
           </div>
         </div>
 

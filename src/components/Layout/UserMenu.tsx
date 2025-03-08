@@ -1,18 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import { supabase } from '@/lib/client/supabase';
 import { User } from '@/types';
+import {
+  Bookmark,
+  ChevronDown,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  User as UserIcon
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  ChevronDown, 
-  Settings, 
-  LogOut, 
-  User as UserIcon,
-  Bookmark,
-  Heart
-} from 'lucide-react';
+import { useState } from 'react';
 
 export function UserMenu({ user }: { user: User }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,15 +32,15 @@ export function UserMenu({ user }: { user: User }) {
         className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
       >
         <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-          {user.avatar_url ? (
+          {user.avatarUrl ? (
             <img
-              src={user.avatar_url}
+              src={user.avatarUrl}
               alt={user.username}
               className="h-full w-full object-cover"
             />
           ) : (
             <span className="text-sm font-medium">
-              {user.username[0].toUpperCase()}
+              {user.username?.[0]?.toUpperCase() || 'U'}
             </span>
           )}
         </div>
@@ -49,12 +50,21 @@ export function UserMenu({ user }: { user: User }) {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
           <Link
+            href="/dashboard"
+            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => setIsOpen(false)}
+          >
+            <LayoutDashboard className="h-4 w-4 mr-2" />
+            Dashboard
+          </Link>
+          
+          <Link
             href={`/profile/${user.username}`}
             className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             onClick={() => setIsOpen(false)}
           >
             <UserIcon className="h-4 w-4 mr-2" />
-            Profile
+            My Profile
           </Link>
           
           <Link

@@ -1,11 +1,11 @@
-import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
 import { MediaDetails } from '@/components/Media/MediaDetails';
-import { ReviewSection } from '@/components/Reviews/ReviewSection';
 import { RelatedMedia } from '@/components/Media/RelatedMedia';
+import { ReviewSection } from '@/components/Reviews/ReviewSection';
 import { CommunityPosts } from '@/components/Social/CommunityPosts';
-import { MediaType } from '@/types';
 import { serviceMap } from '@/lib/services/media';
+import { MediaType } from '@/types';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 interface MediaPageProps {
   params: {
@@ -52,7 +52,7 @@ export default function MediaPage({ params: { mediaType, id } }: MediaPageProps)
                 ))}
               </div>
             }>
-              <CommunityPosts mediaId={id} />
+              <CommunityPosts mediaId={id} mediaType={mediaType} />
             </Suspense>
           </section>
         </div>

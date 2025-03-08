@@ -1,15 +1,15 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
-import { MediaType } from '@/types';
-import { serviceMap } from '@/lib/services/media';
+import { PopularLists } from '@/components/Lists/PopularLists';
 import { TrendingSection } from '@/components/Media/TrendingSection';
 import { PopularReviews } from '@/components/Reviews/PopularReviews';
-import { PopularLists } from '@/components/Lists/PopularLists';
+import { serviceMap } from '@/lib/services/media';
+import { MediaType } from '@/types';
+import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 //import { PopularReviewers } from '@/components/Reviews/PopularReviewers';
-import { CommunityGrid } from '@/components/Social/CommunityGrid';
 import { NewsGrid } from '@/components/News/NewsGrid';
+import { CommunityGrid } from '@/components/Social/CommunityGrid';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface SectionHeaderProps {
@@ -30,13 +30,13 @@ const SectionHeader = ({ title, href }: SectionHeaderProps) => (
   </div>
 );
 
-interface MediaTypePageProps {
+export default async function MediaTypePage({
+  params,
+}: {
   params: { mediaType: string };
-}
-
-export default function MediaTypePage({
-  params: { mediaType },
-}: MediaTypePageProps) {
+}) {
+  const mediaType = params.mediaType;
+  
   // Validate media type using the serviceMap
   if (!(mediaType in serviceMap)) {
     notFound();

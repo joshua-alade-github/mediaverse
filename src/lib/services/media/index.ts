@@ -47,7 +47,11 @@ export async function searchAllServices(
     types.map(async (type) => {
       try {
         const service = getServiceForType(type);
-        results[type] = await service.searchMedia(query);
+        if (type === 'tv_show' && service instanceof TMDBService) {
+          results[type] = await service.searchMedia(query, { type: 'tv' });
+        } else {
+          results[type] = await service.searchMedia(query);
+        }
       } catch (error) {
         console.error(`Error searching ${type}:`, error);
         results[type] = [];
@@ -69,7 +73,11 @@ export async function getTrendingAcrossServices(
     types.map(async (type) => {
       try {
         const service = getServiceForType(type);
-        results[type] = await service.getTrendingMedia();
+        if (type === 'tv_show' && service instanceof TMDBService) {
+          results[type] = await service.getTrendingMedia('tv');
+        } else {
+          results[type] = await service.getTrendingMedia();
+        }
       } catch (error) {
         console.error(`Error getting trending ${type}:`, error);
         results[type] = [];
@@ -91,7 +99,11 @@ export async function getPopularAcrossServices(
     types.map(async (type) => {
       try {
         const service = getServiceForType(type);
-        results[type] = await service.getPopularMedia();
+        if (type === 'tv_show' && service instanceof TMDBService) {
+          results[type] = await service.getPopularMedia('tv');
+        } else {
+          results[type] = await service.getPopularMedia();
+        }
       } catch (error) {
         console.error(`Error getting popular ${type}:`, error);
         results[type] = [];
@@ -108,6 +120,9 @@ export async function getMediaDetails(
   externalId: string
 ): Promise<MediaReference> {
   const service = getServiceForType(mediaType);
+  if (mediaType === 'tv_show' && service instanceof TMDBService) {
+    return service.getMediaDetails(externalId, { type: 'tv' });
+  }
   return service.getMediaDetails(externalId);
 }
 

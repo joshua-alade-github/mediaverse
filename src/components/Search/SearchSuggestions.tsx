@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getServiceForType } from '@/lib/services/media';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useOnClickOutside } from '@/hooks/useOnClickOutside';
+import { getServiceForType } from '@/lib/services/media';
 import type { MediaType } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 
 interface SearchSuggestionsProps {
   query: string;
@@ -32,8 +32,6 @@ export function SearchSuggestions({
       
       const service = getServiceForType(selectedService);
       const results = await service.searchMedia(debouncedQuery);
-      console.log("service: " + service);
-      console.log("results: " + results);
       
       
       return results.slice(0, 5).map(result => ({

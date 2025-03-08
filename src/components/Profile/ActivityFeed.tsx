@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/client/supabase';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 
 interface ActivityFeedProps {
@@ -189,9 +189,9 @@ function ActivityItem({ activity, compact }: ActivityItemProps) {
     <div className="flex space-x-3">
       <div className="flex-shrink-0">
         <Link href={`/profile/${activity.user.username}`}>
-        {activity.user.avatar_url ? (
+        {activity.user.avatarUrl ? (
             <img
-              src={activity.user.avatar_url}
+              src={activity.user.avatarUrl}
               alt={activity.user.username}
               className="h-8 w-8 rounded-full"
             />

@@ -44,6 +44,11 @@ export interface Post {
   content: string;
   createdAt: Date;
   updatedAt: Date;
+  user: User;
+}
+
+export interface ExtendedPost extends Post {
+  commentCount: number;
 }
 
 export interface Comment {

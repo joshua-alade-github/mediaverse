@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api/client';
 import { MediaType } from '@/types';
 import { TVShowDetails } from './TVShowDetails';
@@ -19,13 +19,64 @@ interface MediaDetailsProps {
 }
 
 export function MediaDetails({ id, mediaType }: MediaDetailsProps) {
-  const { data: media, isLoading, error } = useQuery({
-    queryKey: ['media-details', mediaType, id],
-    queryFn: () => apiClient.getMediaDetails(mediaType, id)
-  });
+  const [media, setMedia] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    async function loadMediaDetails() {
+      if (!id || !mediaType) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        console.log(`Loading media details for ${mediaType}/${id}`);
+        const mediaData = await apiClient.getMediaDetails(mediaType, id);
+        
+        if (isMounted) {
+          console.log(`Media details loaded:`, mediaData);
+          setMedia(mediaData);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error(`Error loading media details for ${mediaType}/${id}:`, err);
+        if (isMounted) {
+          setError(err as Error);
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    loadMediaDetails();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [id, mediaType]);
 
   if (isLoading) return <LoadingSkeleton />;
-  if (error || !media) return <ErrorState />;
+  if (error || !media) {
+    return (
+      <ErrorState 
+        onRetry={() => {
+          setIsLoading(true);
+          setError(null);
+          apiClient.getMediaDetails(mediaType, id)
+            .then(data => {
+              setMedia(data);
+              setIsLoading(false);
+            })
+            .catch(err => {
+              setError(err as Error);
+              setIsLoading(false);
+            });
+        }}
+      />
+    );
+  }
 
   const renderMediaSpecificDetails = () => {
     switch (mediaType) {
