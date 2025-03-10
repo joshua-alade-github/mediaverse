@@ -39,7 +39,7 @@ export default function MediaPage({ params: { mediaType, id } }: MediaPageProps)
                 ))}
               </div>
             }>
-              <ReviewSection mediaId={id} />
+              <ReviewSection mediaId={id} mediaType={mediaType} />
             </Suspense>
           </section>
 
