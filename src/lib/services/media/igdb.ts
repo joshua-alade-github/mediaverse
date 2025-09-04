@@ -1,5 +1,5 @@
 import { BaseMediaService } from './base';
-import { ExternalSourceType, MediaReference, NewsItem } from '@/types';
+import { ExternalSourceType, MediaReference } from '@/types';
 import { RateLimiter } from './rate-limiter';
 
 export class IGDBService extends BaseMediaService {
@@ -23,17 +23,38 @@ export class IGDBService extends BaseMediaService {
   }
 
   protected async fetchFromIGDB<T>(endpoint: string, query: string): Promise<T> {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `http://localhost:3000`; // Get base URL from environment
-    const apiUrl = `${baseUrl}/api/igdb`; // Construct absolute URL
-
-    return this.fetchWithCache<T>(apiUrl, { // Use the absolute URL
+    try {
+      const token = await this.getAccessToken();
+      const apiUrl = `${this.baseUrl}/${endpoint}`;
+      
+      console.log(`IGDB fetch: ${endpoint}, query: ${query}`);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+          'Client-ID': this.apiKey,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'text/plain'
         },
-        body: JSON.stringify({ query, endpoint })
-    });
+        body: query
+      });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`IGDB API error (${response.status}): ${text}`);
+        return [] as unknown as T;
+      }
+      
+      const data = await response.json();
+      if (!data) return [] as unknown as T;
+      
+      return data;
+    } catch (error) {
+      console.error(`Error fetching from IGDB (${endpoint}):`, error);
+      return [] as unknown as T;
+    }
   }
+  
 
   public async searchMedia(query: string, options: any = {}): Promise<MediaReference[]> {
     const data = await this.fetchFromIGDB('games', `

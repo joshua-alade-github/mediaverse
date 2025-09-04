@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Film, Tv, Gamepad2, BookOpen, Music, BookMarked, Album } from 'lucide-react';
+import { Film, Gamepad2, BookOpen, Music } from 'lucide-react';
 import type { MediaType } from '@/types';
 
 interface MediaTypeItem {
@@ -19,13 +19,6 @@ const mediaTypes: MediaTypeItem[] = [
     icon: <Film className="w-8 h-8" />,
     description: 'Track and rate your favorite films',
     gradient: 'from-rose-500 to-orange-500'
-  },
-  {
-    type: 'tv_show',
-    label: 'TV Shows',
-    icon: <Tv className="w-8 h-8" />,
-    description: "Keep up with series you're watching",
-    gradient: 'from-blue-500 to-cyan-500'
   },
   {
     type: 'game',
@@ -47,27 +40,6 @@ const mediaTypes: MediaTypeItem[] = [
     icon: <Music className="w-8 h-8" />,
     description: 'Discover and share music',
     gradient: 'from-purple-500 to-pink-500'
-  },
-  {
-    type: 'comic',
-    label: 'Comics',
-    icon: <BookMarked className="w-8 h-8" />,
-    description: 'Track your comic series',
-    gradient: 'from-indigo-500 to-purple-500'
-  },
-  {
-    type: 'manga',
-    label: 'Manga',
-    icon: <BookMarked className="w-8 h-8" />,
-    description: 'Follow your favorite manga',
-    gradient: 'from-red-500 to-pink-500'
-  },
-  {
-    type: 'anime',
-    label: 'Anime',
-    icon: <Album className="w-8 h-8" />,
-    description: 'Track anime series and films',
-    gradient: 'from-violet-500 to-purple-500'
   }
 ];
 

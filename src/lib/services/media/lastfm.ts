@@ -1,5 +1,5 @@
 import { BaseMediaService } from './base';
-import { ExternalSourceType, MediaReference, NewsItem } from '@/types';
+import { ExternalSourceType, MediaReference } from '@/types';
 import { RateLimiter } from './rate-limiter';
 
 export interface LastFMSearchOptions {

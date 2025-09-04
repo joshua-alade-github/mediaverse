@@ -3,19 +3,17 @@
 import { useState } from 'react';
 import {
   TMDBService,
-  RAWGService,
+  IGDBService,
   GoogleBooksService,
   LastFMService,
-  ComicVineService,
   searchAllServices
 } from '@/lib/services/media';
 
 // Initialize services
 const tmdb = new TMDBService();
-const rawg = new RAWGService();
+const igdb = new IGDBService();
 const googleBooks = new GoogleBooksService();
 const lastfm = new LastFMService();
-const comicVine = new ComicVineService();
 
 interface TestResult {
   service: string;
@@ -39,9 +37,9 @@ export default function APITestPage() {
       service: tmdb,
       detailsPlaceholder: 'tt0076759 (IMDB ID) or 11 (TMDB ID)'
     },
-    rawg: {
-      name: 'RAWG (Games)',
-      service: rawg,
+    igdb: {
+      name: 'IGDB (Games)',
+      service: igdb,
       detailsPlaceholder: 'grand-theft-auto-v'
     },
     googleBooks: {
@@ -53,11 +51,6 @@ export default function APITestPage() {
       name: 'Last.fm (Music)',
       service: lastfm,
       detailsPlaceholder: '5c176592-e87c-4f3c-ab41-159ad9537be0 (MBID) or name|||artist'
-    },
-    comicVine: {
-      name: 'Comic Vine',
-      service: comicVine,
-      detailsPlaceholder: '4050-14582'
     }
   };
 

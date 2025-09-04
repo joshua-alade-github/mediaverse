@@ -6,7 +6,6 @@ async function getPopularMedia(): Promise<MediaReference[]> {
   try {
     const results = await getPopularAcrossServices([
       'movie',
-      'tv_show',
       'game',
       'book',
       'music'

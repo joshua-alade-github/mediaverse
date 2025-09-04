@@ -1,32 +1,23 @@
 import { TMDBService } from './tmdb';
 import { IGDBService } from './igdb';
-import { RAWGService } from './rawg';
 import { GoogleBooksService } from './google-books';
 import { LastFMService } from './lastfm';
-import { ComicVineService } from './comic-vine';
 import type { MediaReference, MediaType } from '@/types';
 
 // Initialize all services
 export const mediaServices = {
   tmdb: new TMDBService(),
   igdb: new IGDBService(),
-  rawg: new RAWGService(),
   googleBooks: new GoogleBooksService(),
   lastfm: new LastFMService(),
-  comicVine: new ComicVineService(),
 } as const;
 
 // Map media types to services
 export const serviceMap: Record<MediaType, keyof typeof mediaServices> = {
   movie: 'tmdb',
-  tv_show: 'tmdb',
   game: 'igdb',
-  //game: 'rawg',
   book: 'googleBooks',
   music: 'lastfm',
-  comic: 'comicVine',
-  manga: 'comicVine',
-  anime: 'tmdb'
 };
 
 // Helper to get the appropriate service for a media type
@@ -117,5 +108,4 @@ export {
   IGDBService,
   GoogleBooksService,
   LastFMService,
-  ComicVineService
 };

@@ -1,8 +1,6 @@
 import { Suspense } from 'react';
 import { MediaTypeGrid } from '@/components/Media/MediaTypeGrid';
 import { TrendingMedia } from '@/components/Media/TrendingMedia';
-import { PopularMedia } from '@/components/Lists/PopularMedia';
-import { ActiveCommunities } from '@/components/Social/ActiveCommunities';
 
 export default function HomePage() {
   return (
@@ -27,22 +25,6 @@ export default function HomePage() {
           <TrendingMedia />
         </Suspense>
       </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Popular Lists</h2>
-          <Suspense fallback={<div>Loading popular lists...</div>}>
-            <PopularMedia />
-          </Suspense>
-        </section>
-
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Active Communities</h2>
-          <Suspense fallback={<div>Loading communities...</div>}>
-            {/* <ActiveCommunities /> */}
-          </Suspense>
-        </section>
-      </div>
     </div>
   );
 }

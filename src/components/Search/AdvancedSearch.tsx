@@ -36,9 +36,23 @@ export function AdvancedSearch({
   const { data: searchResults, isLoading, refetch } = useQuery({
     queryKey: ['service-search', filters],
     queryFn: async () => {
-      const service = getServiceForType(filters.mediaTypes[0]);
-      const results = await service.searchMedia(query || '');
-
+      if (!query || query.length < 2) return [];
+      
+      const mediaType = filters.mediaTypes?.[0] || 'movie';
+      const service = getServiceForType(mediaType);
+      
+      let results = await service.searchMedia(query);
+    
+      // Filter and sort results
+      if (filters.minRating || filters.maxRating) {
+        results = results.filter(item => {
+          const rating = item.averageRating || 0;
+          if (filters.minRating && rating < filters.minRating) return false;
+          if (filters.maxRating && rating > filters.maxRating) return false;
+          return true;
+        });
+      }
+    
       // Apply sorting
       return results.sort((a, b) => {
         switch (filters.sortBy) {
@@ -59,7 +73,7 @@ export function AdvancedSearch({
         }
       });
     },
-    enabled: shouldSearch && Boolean(query),
+    enabled: query.length >= 2,
   });
 
   // Reset shouldSearch after query completes
@@ -120,7 +134,7 @@ export function AdvancedSearch({
                 Service
               </label>
               <select
-                value={filters.mediaTypes[0]}
+                value={filters.mediaTypes?.[0] || 'movie'}
                 onChange={(e) => updateFilters({ mediaTypes: [e.target.value as MediaType] })}
                 className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
@@ -216,7 +230,10 @@ export function AdvancedSearch({
                 {searchResults.length} results found
               </p>
             </div>
-            <MediaGrid items={searchResults} />
+            <MediaGrid items={searchResults.map(item => ({
+              ...item,
+              id: item.externalId
+            }))} />
           </div>
         )}
       </div>

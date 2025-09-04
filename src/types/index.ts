@@ -1,4 +1,4 @@
-export type MediaType = 'movie' | 'tv_show' | 'game' | 'book' | 'music' | 'comic' | 'manga' | 'anime';
+export type MediaType = 'movie' | 'game' | 'book' | 'music';
 
 export type Role = 'admin' | 'moderator' | 'member' | 'viewer';
 
@@ -148,7 +148,6 @@ export type ExternalSourceType =
   | 'igdb'
   | 'google_books'
   | 'lastfm'
-  | 'comic_vine';
 
 export interface Attribution {
   source: string;

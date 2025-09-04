@@ -3,10 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Star, Plus, Info } from 'lucide-react';
+import { Star, Info } from 'lucide-react';
 import type { Media, MediaReference } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
-import { QuickAddMenu } from './QuickAddMenu';
 
 interface MediaCardProps {
   media: (Media & {
@@ -26,9 +24,7 @@ function isMediaReference(media: MediaCardProps['media']): media is MediaReferen
 }
 
 export function MediaCardWithAttribution({ media }: MediaCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAttribution, setShowAttribution] = useState(false);
-  const { user } = useAuth();
 
   // Get attribution based on media type
   const attribution = isMediaReference(media) 
@@ -69,16 +65,7 @@ export function MediaCardWithAttribution({ media }: MediaCardProps) {
             </p>
           </div>
           
-          <div className="flex items-center space-x-2">
-            {user && (
-              <button
-                onClick={() => setIsMenuOpen(true)}
-                className="p-2 text-gray-400 hover:text-indigo-600 rounded-full hover:bg-gray-100"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-            )}
-            
+          <div className="flex items-center space-x-2">        
             {attribution && (
               <button
                 onClick={() => setShowAttribution(true)}
@@ -100,13 +87,6 @@ export function MediaCardWithAttribution({ media }: MediaCardProps) {
           </span>
         </div>
       </div>
-
-      {isMenuOpen && (
-        <QuickAddMenu
-          media={media}
-          onClose={() => setIsMenuOpen(false)}
-        />
-      )}
 
       {showAttribution && attribution && (
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-black bg-opacity-75 rounded-b-lg">

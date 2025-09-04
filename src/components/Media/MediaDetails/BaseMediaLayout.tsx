@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Star, Share2, Heart, Plus } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 export function BaseMediaLayout({ media, children }) {
   return (
@@ -83,22 +83,6 @@ export function BaseMediaLayout({ media, children }) {
             <p className="mt-4 text-gray-700 whitespace-pre-line">
               {media.description}
             </p>
-
-            {/* Action Buttons */}
-            <div className="mt-6 flex items-center space-x-4">
-              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                <Plus className="h-5 w-5" />
-                <span>Add to List</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
-                <Heart className="h-5 w-5" />
-                <span>Favorite</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
-                <Share2 className="h-5 w-5" />
-                <span>Share</span>
-              </button>
-            </div>
 
             {/* Media Specific Content */}
             {children}

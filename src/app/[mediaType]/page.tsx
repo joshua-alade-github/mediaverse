@@ -5,10 +5,6 @@ import { ArrowRight } from 'lucide-react';
 import { MediaType } from '@/types';
 import { serviceMap } from '@/lib/services/media';
 import { TrendingSection } from '@/components/Media/TrendingSection';
-import { PopularReviews } from '@/components/Reviews/PopularReviews';
-import { PopularLists } from '@/components/Lists/PopularLists';
-//import { PopularReviewers } from '@/components/Reviews/PopularReviewers';
-import { CommunityGrid } from '@/components/Social/CommunityGrid';
 import { NewsGrid } from '@/components/News/NewsGrid';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -62,54 +58,6 @@ export default function MediaTypePage({
         />
         <Suspense fallback={<LoadingSpinner />}>
           <TrendingSection mediaType={validatedMediaType} />
-        </Suspense>
-      </section>
-
-      {/* Popular Reviews & Lists Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Popular Reviews */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-          <SectionHeader 
-            title="Popular Reviews This Week"
-            href={`/${mediaType}/reviews`}
-          />
-          <Suspense fallback={<LoadingSpinner />}>
-            <PopularReviews mediaType={validatedMediaType} limit={5} />
-          </Suspense>
-        </div>
-
-        {/* Popular Lists and Reviewers */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <SectionHeader 
-              title="Popular Lists"
-              href={`/${mediaType}/lists`}
-            />
-            <Suspense fallback={<LoadingSpinner />}>
-              <PopularLists mediaType={validatedMediaType} limit={3} />
-            </Suspense>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <SectionHeader 
-              title="Top Reviewers"
-              href={`/${mediaType}/reviewers`}
-            />
-            {/* <Suspense fallback={<LoadingSpinner />}>
-              <PopularReviewers mediaType={validatedMediaType} limit={5} />
-            </Suspense> */}
-          </div>
-        </div>
-      </div>
-
-      {/* Popular Communities */}
-      <section className="bg-white rounded-lg shadow p-6">
-        <SectionHeader 
-          title="Active Communities"
-          href={`/${mediaType}/communities`}
-        />
-        <Suspense fallback={<LoadingSpinner />}>
-          <CommunityGrid mediaType={validatedMediaType} limit={6} />
         </Suspense>
       </section>
 

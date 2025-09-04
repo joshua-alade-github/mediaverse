@@ -1,21 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-//import { Star, Plus } from 'lucide-react';
-import { Plus } from 'lucide-react';
 import { Media } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
-import { QuickAddMenu } from './QuickAddMenu';
 
 interface MediaCardProps {
   media: Media;
 }
 
 export function MediaCard({ media }: MediaCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user } = useAuth();
 
   return (
     <div className="group relative bg-white rounded-lg shadow hover:shadow-md transition-shadow">
@@ -50,35 +43,7 @@ export function MediaCard({ media }: MediaCardProps) {
               {media.releaseDate && new Date(media.releaseDate).getFullYear()}
             </p>
           </div>
-          
-          {user && (
-            <div className="relative">
-              <button
-                onClick={() => setIsMenuOpen(true)}
-                className="p-2 text-gray-400 hover:text-indigo-600 rounded-full hover:bg-gray-100"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
-              
-              {isMenuOpen && (
-                <QuickAddMenu
-                  media={media}
-                  onClose={() => setIsMenuOpen(false)}
-                />
-              )}
-            </div>
-          )}
         </div>
-
-        {/* <div className="mt-2 flex items-center space-x-2">
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <span className="text-sm text-gray-700">
-            {media.averageRating?.toFixed(1) || 'N/A'}
-          </span>
-          <span className="text-sm text-gray-500">
-            ({media.totalReviews || 0})
-          </span>
-        </div> */}
       </div>
     </div>
   );

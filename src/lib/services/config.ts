@@ -31,13 +31,6 @@ export const serviceConfig = {
       perSeconds: 1
     },
     defaultMarket: 'US'
-  },
-  comicVine: {
-    baseUrl: 'https://comicvine.gamespot.com/api',
-    rateLimit: {
-      requests: 200,
-      perHour: 1
-    }
   }
 } as const;
 

@@ -65,10 +65,3 @@ export interface LastFMDetailsOptions {
   album?: string;
   track?: string;
 }
-
-export interface ComicVineSearchOptions {
-  resources?: ('issue' | 'volume' | 'character' | 'publisher')[];
-  limit?: number;
-  offset?: number;
-  sort?: string;
-}

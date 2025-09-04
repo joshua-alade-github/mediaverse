@@ -19,10 +19,6 @@ const DEFAULT_CACHE_CONFIG: Record<string, CacheConfig> = {
   lastfm: {
     maxAge: 60 * 60,  // 1 hour
     source: 'Last.fm'
-  },
-  comic_vine: {
-    maxAge: 24 * 60 * 60,  // 24 hours
-    source: 'Comic Vine'
   }
 };
 

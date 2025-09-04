@@ -6,13 +6,9 @@ import type { MediaReference, MediaType } from '@/types';
 
 const mediaTypes = [
   { label: 'Movies', value: 'movie' },
-  { label: 'TV Shows', value: 'tv_show' },
   { label: 'Games', value: 'game' },
   { label: 'Books', value: 'book' },
-  { label: 'Music', value: 'music' },
-  { label: 'Comics', value: 'comic' },
-  { label: 'Manga', value: 'manga' },
-  { label: 'Anime', value: 'anime' }
+  { label: 'Music', value: 'music' }
 ] as const;
 
 async function getTrendingByType(type: MediaType): Promise<MediaReference[]> {
