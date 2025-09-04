@@ -1,5 +1,5 @@
 import { BaseMediaService } from './base';
-import { ExternalSourceType, MediaReference } from '@/types';
+import { ExternalSourceType, MediaReference, NewsItem } from '@/types';
 import { RateLimiter } from './rate-limiter';
 
 export class IGDBService extends BaseMediaService {
@@ -7,11 +7,14 @@ export class IGDBService extends BaseMediaService {
   protected source: ExternalSourceType = 'igdb';
   protected sourceUrl = 'https://igdb.com';
   protected rateLimiter = new RateLimiter(4, 1);
-  private baseUrl = 'https://api.igdb.com/v4';
+  private baseUrl = '/api/igdb';
   private accessToken: string | null = null;
+  private tokenExpiry: number = 0;
 
-  private async getAccessToken() {
-    if (this.accessToken) return this.accessToken;
+  private async ensureToken() {
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
     
     const response = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${this.apiKey}&client_secret=${process.env.NEXT_PUBLIC_IGDB_CLIENT_SECRET}&grant_type=client_credentials`, {
       method: 'POST'
@@ -19,47 +22,45 @@ export class IGDBService extends BaseMediaService {
     
     const data = await response.json();
     this.accessToken = data.access_token;
+    this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // Refresh 1 min early
     return this.accessToken;
   }
 
   protected async fetchFromIGDB<T>(endpoint: string, query: string): Promise<T> {
     try {
-      const token = await this.getAccessToken();
-      const apiUrl = `${this.baseUrl}/${endpoint}`;
+      await this.ensureToken();
       
-      console.log(`IGDB fetch: ${endpoint}, query: ${query}`);
-      
-      const response = await fetch(apiUrl, {
+      // Use the proxy endpoint
+      const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Client-ID': this.apiKey,
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'text/plain'
+          'Content-Type': 'application/json',
         },
-        body: query
+        body: JSON.stringify({
+          endpoint,
+          query
+        })
       });
       
       if (!response.ok) {
-        const text = await response.text();
-        console.error(`IGDB API error (${response.status}): ${text}`);
+        console.error(`IGDB API error: ${response.status}`);
         return [] as unknown as T;
       }
       
       const data = await response.json();
-      if (!data) return [] as unknown as T;
-      
-      return data;
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error(`Error fetching from IGDB (${endpoint}):`, error);
       return [] as unknown as T;
     }
   }
-  
 
-  public async searchMedia(query: string, options: any = {}): Promise<MediaReference[]> {
-    const data = await this.fetchFromIGDB('games', `
+  public async searchMedia(query: string): Promise<MediaReference[]> {
+    const data = await this.fetchFromIGDB<any[]>('games', `
       search "${query}";
-      fields name,summary,cover.*,first_release_date,rating,rating_count,genres.name,platforms.name,involved_companies.*;
+      fields name,summary,cover.*,first_release_date,total_rating,total_rating_count,
+             genres.name,platforms.name,involved_companies.company.name,
+             involved_companies.developer,involved_companies.publisher,slug;
       where cover != null;
       limit 20;
     `);
@@ -68,23 +69,32 @@ export class IGDBService extends BaseMediaService {
   }
 
   public async getMediaDetails(id: string): Promise<MediaReference> {
-    const [data] = await this.fetchFromIGDB('games', `
-      fields name,summary,cover.*,first_release_date,rating,rating_count,genres.name,
-        platforms.name,involved_companies.*,age_ratings.*,screenshots.*,videos.*;
+    const data = await this.fetchFromIGDB<any[]>('games', `
+      fields name,summary,cover.*,first_release_date,total_rating,total_rating_count,
+             genres.name,platforms.name,involved_companies.company.name,
+             involved_companies.developer,involved_companies.publisher,
+             screenshots.*,videos.*,websites.*,slug,storyline;
       where id = ${id};
     `);
 
-    return this.transformIGDBResult(data);
+    if (!data || data.length === 0) {
+      throw new Error('Game not found');
+    }
+
+    return this.transformIGDBResult(data[0]);
   }
 
   public async getTrendingMedia(): Promise<MediaReference[]> {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const monthAgo = currentTime - (30 * 24 * 60 * 60);
-
-    const data = await this.fetchFromIGDB('games', `
-      fields name,summary,cover.*,first_release_date,rating,rating_count,genres.name,platforms.name,involved_companies.*;
-      where cover != null & first_release_date >= ${monthAgo};
-      sort first_release_date desc;
+    // Get highly rated recent games (last 3 months)
+    const threeMonthsAgo = Math.floor(Date.now() / 1000) - (90 * 24 * 60 * 60);
+    
+    const data = await this.fetchFromIGDB<any[]>('games', `
+      fields name,summary,cover.*,first_release_date,total_rating,total_rating_count,
+             genres.name,platforms.name,involved_companies.company.name,
+             involved_companies.developer,involved_companies.publisher,slug;
+      where cover != null & first_release_date > ${threeMonthsAgo} 
+            & total_rating_count > 5;
+      sort total_rating desc;
       limit 20;
     `);
 
@@ -92,64 +102,79 @@ export class IGDBService extends BaseMediaService {
   }
 
   public async getPopularMedia(): Promise<MediaReference[]> {
-    const data = await this.fetchFromIGDB('games', `
-      fields name,summary,cover.*,first_release_date,rating,rating_count,genres.name,platforms.name,involved_companies.*;
-      where cover != null & rating >= 80;
-      sort rating desc;
+    // Get highest rated games with significant ratings
+    const data = await this.fetchFromIGDB<any[]>('games', `
+      fields name,summary,cover.*,first_release_date,total_rating,total_rating_count,
+             genres.name,platforms.name,involved_companies.company.name,
+             involved_companies.developer,involved_companies.publisher,slug;
+      where cover != null & total_rating != null & total_rating_count > 20;
+      sort total_rating desc;
       limit 20;
     `);
 
     return data.map(this.transformIGDBResult.bind(this));
   }
 
-  private transformIGDBResult(item: any): MediaReference {
-    const igdbUrl = `https://igdb.com/games/${item.slug}`;
+  public async getLatestNews(limit: number = 20): Promise<NewsItem[]> {
+    // Get upcoming games
+    const now = Math.floor(Date.now() / 1000);
+    const sixMonthsFromNow = now + (180 * 24 * 60 * 60);
+    
+    const data = await this.fetchFromIGDB<any[]>('games', `
+      fields name,summary,cover.*,first_release_date,slug;
+      where cover != null & first_release_date > ${now} 
+            & first_release_date < ${sixMonthsFromNow};
+      sort first_release_date asc;
+      limit ${limit};
+    `);
 
+    return data.map((game: any) => ({
+      id: String(game.id),
+      title: game.name,
+      description: game.summary || 'Upcoming release',
+      imageUrl: game.cover ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : undefined,
+      url: `https://igdb.com/games/${game.slug}`,
+      publishedAt: new Date(game.first_release_date * 1000).toISOString(),
+      source: 'IGDB',
+      type: 'upcoming_release' as const
+    }));
+  }
+
+  private transformIGDBResult(item: any): MediaReference {
+    const igdbUrl = item.slug ? `https://igdb.com/games/${item.slug}` : `https://igdb.com/games/${item.id}`;
     const coverUrl = item.cover?.url;
-    const coverImageUrl = coverUrl ? `https:${coverUrl.replace('thumb', 'cover_big')}` : undefined;
+    const coverImageUrl = coverUrl ? `https:${coverUrl.replace('t_thumb', 't_cover_big')}` : undefined;
 
     return {
-        internalId: undefined,
-        externalId: item.id.toString(),
-        externalSource: this.source,
-        title: item.name,
-        description: item.summary,
-        mediaType: 'game',
-        releaseDate: item.first_release_date ? new Date(item.first_release_date * 1000) : undefined,
-        coverImage: coverImageUrl,
-        averageRating: item.rating ? item.rating / 20 : undefined,
-        totalReviews: item.rating_count,
-        attribution: this.createAttribution(igdbUrl),
-        referenceData: {
-            platforms: item.platforms?.map((p: any) => p.name) || [],
-            genres: item.genres?.map((g: any) => g.name) || [],
-            developers: item.involved_companies
-                ?.filter((c: any) => c.developer)
-                ?.map((c: any) => ({
-                    name: c.company.name,
-                    role: 'developer'
-                })) || [],
-            publishers: item.involved_companies
-                ?.filter((c: any) => c.publisher)
-                ?.map((c: any) => ({
-                    name: c.company.name,
-                    role: 'publisher'
-                })) || [],
-            screenshots: item.screenshots?.map((s: any) => s.url) || [],
-            videos: item.videos?.map((v: any) => v.video_id) || []
-        }
+      externalId: item.id.toString(),
+      externalSource: this.source,
+      title: item.name,
+      description: item.summary || item.storyline,
+      mediaType: 'game',
+      releaseDate: item.first_release_date ? new Date(item.first_release_date * 1000) : undefined,
+      coverImage: coverImageUrl,
+      averageRating: item.total_rating ? item.total_rating / 20 : undefined,
+      totalReviews: item.total_rating_count,
+      attribution: this.createAttribution(igdbUrl),
+      referenceData: {
+        platforms: item.platforms?.map((p: any) => p.name) || [],
+        genres: item.genres?.map((g: any) => g.name) || [],
+        developers: item.involved_companies
+          ?.filter((c: any) => c.developer)
+          ?.map((c: any) => ({
+            name: c.company.name,
+            role: 'developer'
+          })) || [],
+        publishers: item.involved_companies
+          ?.filter((c: any) => c.publisher)
+          ?.map((c: any) => ({
+            name: c.company.name,
+            role: 'publisher'
+          })) || [],
+        screenshots: item.screenshots?.map((s: any) => `https:${s.url.replace('t_thumb', 't_screenshot_big')}`) || [],
+        videos: item.videos?.map((v: any) => v.video_id) || [],
+        websites: item.websites?.map((w: any) => ({ url: w.url, category: w.category })) || []
+      }
     };
-  }
-
-  public async getGenres(): Promise<any[]> {
-    return this.fetchFromIGDB('genres', 'fields name; limit 50;');
-  }
-
-  public async getPlatforms(): Promise<any[]> {
-    return this.fetchFromIGDB('platforms', 'fields name; limit 50;');
-  }
-
-  toString() {
-    return "IGDBService";
   }
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
-import { MediaType } from '@/types';
+import { useState, useEffect } from 'react';
+import { getServiceForType } from '@/lib/services/media';
+import { MediaType, MediaReference } from '@/types';
 import { MovieDetails } from './MovieDetails';
 import { GameDetails } from './GameDetails';
 import { BookDetails } from './BookDetails';
@@ -17,10 +17,26 @@ interface MediaDetailsProps {
 }
 
 export function MediaDetails({ id, mediaType }: MediaDetailsProps) {
-  const { data: media, isLoading, error } = useQuery({
-    queryKey: ['media-details', mediaType, id],
-    queryFn: () => apiClient.getMediaDetails(mediaType, id)
-  });
+  const [media, setMedia] = useState<MediaReference | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setIsLoading(true);
+        const service = getServiceForType(mediaType);
+        const details = await service.getMediaDetails(id);
+        setMedia(details);
+      } catch (err) {
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [id, mediaType]);
 
   if (isLoading) return <LoadingSkeleton />;
   if (error || !media) return <ErrorState />;

@@ -1,139 +1,151 @@
 import { BaseMediaService } from './base';
-import { GoogleBooksSearchOptions } from './types';
 import { ExternalSourceType, MediaReference, NewsItem } from '@/types';
 import { RateLimiter } from './rate-limiter';
 
 export class GoogleBooksService extends BaseMediaService {
-  protected apiKey = ''; // Not required for basic access
+  protected apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY || '';
   protected source: ExternalSourceType = 'google_books';
   protected sourceUrl = 'https://books.google.com';
-  protected rateLimiter = new RateLimiter(1000, 60); // 1000 requests per minute
+  protected rateLimiter = new RateLimiter(100, 10);
   private baseUrl = 'https://www.googleapis.com/books/v1';
 
-  public async searchMedia(query: string): Promise<MediaReference[]>;
-  public async searchMedia(query: string, options: GoogleBooksSearchOptions): Promise<MediaReference[]>;
-  public async searchMedia(query: string, options: GoogleBooksSearchOptions = {}): Promise<MediaReference[]> {
-    const {
-      printType = 'all',
-      orderBy = 'relevance',
-      langRestrict,
-      maxResults = 20
-    } = options;
+  public async searchMedia(query: string): Promise<MediaReference[]> {
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        maxResults: '20',
+        printType: 'books',
+        orderBy: 'relevance'
+      });
 
-    const params = new URLSearchParams({
-      q: query,
-      printType,
-      orderBy,
-      maxResults: maxResults.toString()
-    });
+      if (this.apiKey) {
+        params.append('key', this.apiKey);
+      }
 
-    if (langRestrict) {
-      params.append('langRestrict', langRestrict);
+      const response = await fetch(`${this.baseUrl}/volumes?${params}`);
+      const data = await response.json();
+
+      if (!data.items) return [];
+
+      return data.items.map(this.transformGoogleBooksResult.bind(this));
+    } catch (error) {
+      console.error('Google Books search error:', error);
+      return [];
     }
-
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/volumes?${params}`
-    );
-
-    return data.items?.map(this.transformGoogleBooksResult.bind(this)) || [];
   }
 
   public async getMediaDetails(id: string): Promise<MediaReference> {
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/volumes/${id}`
-    );
+    const params = this.apiKey ? `?key=${this.apiKey}` : '';
+    const response = await fetch(`${this.baseUrl}/volumes/${id}${params}`);
+    const data = await response.json();
 
     return this.transformGoogleBooksResult(data);
   }
 
   public async getTrendingMedia(): Promise<MediaReference[]> {
-    // Google Books doesn't have a trending endpoint, using new releases instead
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/volumes?q=subject:fiction&orderBy=newest&maxResults=20`
-    );
+    // Google Books doesn't have trending, use bestsellers search
+    try {
+      const params = new URLSearchParams({
+        q: 'subject:fiction',
+        orderBy: 'newest',
+        maxResults: '20',
+        printType: 'books'
+      });
 
-    return data.items?.map(this.transformGoogleBooksResult.bind(this)) || [];
+      if (this.apiKey) {
+        params.append('key', this.apiKey);
+      }
+
+      const response = await fetch(`${this.baseUrl}/volumes?${params}`);
+      const data = await response.json();
+
+      return data.items?.map(this.transformGoogleBooksResult.bind(this)) || [];
+    } catch (error) {
+      console.error('Google Books trending error:', error);
+      return [];
+    }
   }
 
   public async getPopularMedia(): Promise<MediaReference[]> {
-    // Using bestseller fiction as proxy for popularity
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/volumes?q=subject:fiction&orderBy=relevance&maxResults=20`
-    );
+    try {
+      const params = new URLSearchParams({
+        q: 'bestseller',
+        orderBy: 'relevance',
+        maxResults: '20',
+        printType: 'books',
+        langRestrict: 'en'
+      });
 
-    return data.items?.map(this.transformGoogleBooksResult.bind(this)) || [];
+      if (this.apiKey) {
+        params.append('key', this.apiKey);
+      }
+
+      const response = await fetch(`${this.baseUrl}/volumes?${params}`);
+      const data = await response.json();
+
+      return data.items?.map(this.transformGoogleBooksResult.bind(this)) || [];
+    } catch (error) {
+      console.error('Google Books popular error:', error);
+      return [];
+    }
   }
 
   public async getNewReleases(limit: number = 20): Promise<NewsItem[]> {
-    const data = await this.fetchWithCache<any>(
-      `${this.baseUrl}/volumes?q=&orderBy=newest&maxResults=${limit}&printType=books`
-    );
-  
-    return data.items.map((item: any) => ({
-      id: item.id,
-      title: item.volumeInfo.title,
-      description: item.volumeInfo.description,
-      imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
-      url: item.volumeInfo.infoLink,
-      publishedAt: item.volumeInfo.publishedDate,
-      source: 'Google Books',
-      type: 'new_release'
-    }));
+    try {
+      const params = new URLSearchParams({
+        q: 'inpublisher',
+        orderBy: 'newest',
+        maxResults: limit.toString(),
+        printType: 'books'
+      });
+
+      if (this.apiKey) {
+        params.append('key', this.apiKey);
+      }
+
+      const response = await fetch(`${this.baseUrl}/volumes?${params}`);
+      const data = await response.json();
+
+      if (!data.items) return [];
+
+      return data.items.map((item: any) => ({
+        id: item.id,
+        title: item.volumeInfo.title,
+        description: item.volumeInfo.description?.substring(0, 200) || '',
+        imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+        url: item.volumeInfo.infoLink,
+        publishedAt: item.volumeInfo.publishedDate || new Date().toISOString(),
+        source: 'Google Books',
+        type: 'new_release' as const
+      }));
+    } catch (error) {
+      console.error('Google Books news error:', error);
+      return [];
+    }
   }
 
   private transformGoogleBooksResult(item: any): MediaReference {
-    const volumeInfo = item.volumeInfo;
-    const googleBooksUrl = `https://books.google.com/books?id=${item.id}`;
-    const saleInfo = item.saleInfo || {};
-
+    const volumeInfo = item.volumeInfo || {};
+    
     return {
-      internalId: undefined,
       externalId: item.id,
       externalSource: this.source,
-      title: volumeInfo.title,
+      title: volumeInfo.title || 'Unknown Title',
       description: volumeInfo.description,
       mediaType: 'book',
       releaseDate: volumeInfo.publishedDate ? new Date(volumeInfo.publishedDate) : undefined,
       coverImage: volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
       averageRating: volumeInfo.averageRating,
       totalReviews: volumeInfo.ratingsCount,
-      attribution: this.createAttribution(googleBooksUrl),
+      attribution: this.createAttribution(`https://books.google.com/books?id=${item.id}`),
       referenceData: {
         subtitle: volumeInfo.subtitle,
-        authors: volumeInfo.authors?.map((author: string) => ({
-          name: author,
-          role: 'author'
-        })),
-        publisher: {
-          name: volumeInfo.publisher,
-          role: 'publisher'
-        },
+        authors: volumeInfo.authors,
+        publisher: volumeInfo.publisher,
         pageCount: volumeInfo.pageCount,
         categories: volumeInfo.categories,
-        maturityRating: volumeInfo.maturityRating,
-        language: volumeInfo.language,
-        previewLink: volumeInfo.previewLink,
-        infoLink: volumeInfo.infoLink,
-        industryIdentifiers: volumeInfo.industryIdentifiers,
-        saleInfo: {
-          country: saleInfo.country,
-          saleability: saleInfo.saleability,
-          isEbook: saleInfo.isEbook,
-          listPrice: saleInfo.listPrice,
-          retailPrice: saleInfo.retailPrice,
-          buyLink: saleInfo.buyLink
-        }
+        isbn: volumeInfo.industryIdentifiers?.[0]?.identifier
       }
     };
-  }
-
-  // Additional utility methods
-  public async searchByISBN(isbn: string): Promise<MediaReference | null> {
-    const data = await this.searchMedia(`isbn:${isbn}`);
-    return data.length > 0 ? data[0] : null;
-  }
-
-  toString() {
-    return "GOOGLEBOOKSService";
   }
 }
