@@ -17,28 +17,28 @@ const mediaTypes: MediaTypeItem[] = [
     type: 'movie',
     label: 'Movies',
     icon: <Film className="w-8 h-8" />,
-    description: 'Track and rate your favorite films',
+    description: 'Discover your favorite films',
     gradient: 'from-rose-500 to-orange-500'
   },
   {
     type: 'game',
     label: 'Games',
     icon: <Gamepad2 className="w-8 h-8" />,
-    description: 'Track your gaming achievements',
+    description: 'Discover your favorite games',
     gradient: 'from-green-500 to-emerald-500'
   },
   {
     type: 'book',
     label: 'Books',
     icon: <BookOpen className="w-8 h-8" />,
-    description: 'Build your reading collection',
+    description: 'Discover your favorite books',
     gradient: 'from-amber-500 to-yellow-500'
   },
   {
     type: 'music',
     label: 'Music',
     icon: <Music className="w-8 h-8" />,
-    description: 'Discover and share music',
+    description: 'Discover your favorite music',
     gradient: 'from-purple-500 to-pink-500'
   }
 ];
